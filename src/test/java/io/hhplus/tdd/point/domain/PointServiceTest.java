@@ -31,7 +31,6 @@ class PointServiceTest {
         long id = 1;
         long point = 0;
         long now = System.currentTimeMillis();
-
         UserPoint userPoint = new UserPoint(id, point, now);
 
         long amount = 500;
@@ -46,7 +45,7 @@ class PointServiceTest {
                 .thenReturn(null);
 
         // when
-        UserPoint result = pointService.charge(id, amount);
+        UserPoint result = pointService.charge(new PointRequest(id, amount));
 
         // then
         assertThat(result.point()).isEqualTo(point + amount);
@@ -57,16 +56,11 @@ class PointServiceTest {
     void 음수_포인트_충전() {
         // given
         long id = 1;
-        long point = 0;
-        long now = System.currentTimeMillis();
-
-        UserPoint userPoint = new UserPoint(id, point, now);
-
         long amount = -1;
 
         // when, then
         Assertions.assertThrows(RuntimeException.class,
-                () -> pointService.charge(userPoint.id(), amount));
+                () -> pointService.charge(new PointRequest(id, amount)));
     }
 
 
@@ -77,7 +71,6 @@ class PointServiceTest {
         long id = 1;
         long point = 100;
         long now = System.currentTimeMillis();
-
         UserPoint userPoint = new UserPoint(id, point, now);
 
         long amount = 100;
@@ -92,7 +85,7 @@ class PointServiceTest {
                 .thenReturn(null);
 
         // when
-        UserPoint result = pointService.use(id, amount);
+        UserPoint result = pointService.use(new PointRequest(id, amount));
 
         // then
         assertThat(result.point()).isEqualTo(point - amount);
@@ -103,15 +96,11 @@ class PointServiceTest {
     void 음수_포인트_사용() {
         // given
         long id = 1;
-        long point = 0;
-
-        UserPoint userPoint = new UserPoint(id, point, System.currentTimeMillis());
-
         long amount = -1;
 
         // when, then
         Assertions.assertThrows(RuntimeException.class,
-                () -> pointService.use(userPoint.id(), amount));
+                () -> pointService.use(new PointRequest(id, amount)));
     }
 
     @Test
@@ -120,7 +109,6 @@ class PointServiceTest {
         // given
         long id = 1;
         long point = 0;
-
         UserPoint userPoint = new UserPoint(id, point, System.currentTimeMillis());
 
         long amount = 100;
@@ -130,6 +118,6 @@ class PointServiceTest {
 
         // when, then
         Assertions.assertThrows(RuntimeException.class,
-                () -> pointService.use(userPoint.id(), amount));
+                () -> pointService.use(new PointRequest(id, amount)));
     }
 }
