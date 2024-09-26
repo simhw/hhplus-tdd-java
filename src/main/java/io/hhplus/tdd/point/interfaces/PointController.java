@@ -1,5 +1,6 @@
-package io.hhplus.tdd.point;
+package io.hhplus.tdd.point.interfaces;
 
+import io.hhplus.tdd.point.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PointController {
 
-    private final PointServiceImplV1 pointService;
+    private final PointService pointService;
 
     /**
      * TODO - 특정 유저의 포인트를 조회하는 기능을 작성해주세요.
@@ -21,7 +22,7 @@ public class PointController {
     public UserPoint point(
             @PathVariable long id
     ) {
-        return pointService.getUserPoint(id);
+        return pointService.detail(id);
     }
 
     /**
@@ -31,7 +32,7 @@ public class PointController {
     public List<PointHistory> history(
             @PathVariable long id
     ) {
-        return pointService.getPointHistories(id);
+        return pointService.histories(id);
     }
 
     /**
@@ -42,7 +43,7 @@ public class PointController {
             @PathVariable long id,
             @RequestBody long amount
     ) {
-        return pointService.chargeUserPoint(id, amount);
+        return pointService.charge(id, amount);
     }
 
     /**
@@ -53,6 +54,6 @@ public class PointController {
             @PathVariable long id,
             @RequestBody long amount
     ) {
-        return pointService.useUserPoint(id, amount);
+        return pointService.use(id, amount);
     }
 }
