@@ -27,31 +27,40 @@ public class PointService {
 
     /**
      * 유저의 포인트를 충전하는 기능
-     *
-     * @param id     회원 아이디
-     * @param amount 충전 금액
-     * @return UserPoint
      */
-    public UserPoint charge(long id, long amount) {
-        // 유효성 검사
-        if (amount <= 0) {
-            throw new RuntimeException("amount must be greater than 0");
-        }
+    public UserPoint charge(PointRequest request) {
+        log.info("thread: {}, id: {}, amount: {}", Thread.currentThread().getName(), request.getId(), request.getAmount());
+        // 1. 유효성 검사
+        request.valid();
 
-        ReentrantLock lock = locks.computeIfAbsent(id, k -> new ReentrantLock(true));
+        // 2. 임계 영역 진입을 위한 락 조회
+        ReentrantLock lock = locks.computeIfAbsent(request.getId(), k -> new ReentrantLock(false));
         lock.lock();
 
         try {
-            UserPoint userPoint = userPointRepository.selectById(id);
+            UserPoint userPoint = userPointRepository.selectById(request.getId());
 
             if (userPoint == null) {
                 throw new RuntimeException("not find user point");
             }
 
-            userPoint = userPointRepository.insertOrUpdate(id, userPoint.point() + amount);
-            pointHistoryRepository.insert(id, amount, TransactionType.CHARGE, userPoint.updateMillis());
+            // 3. 포인트 증감, 포인트 값 수정
+            long point = userPoint.point() + request.getAmount();
 
-            log.info("amount: {}, balance: {}, update: {}", amount, userPoint.point(), userPoint.updateMillis());
+            userPoint = userPointRepository.insertOrUpdate(
+                    request.getId(),
+                    point
+            );
+
+            // 4. 거래 내역 로그 저장
+            pointHistoryRepository.insert(
+                    request.getId(),
+                    request.getAmount(),
+                    TransactionType.CHARGE,
+                    userPoint.updateMillis()
+            );
+
+            log.info("point: {}, updateMillis: {}", userPoint.point(), userPoint.updateMillis());
             return userPoint;
 
         } finally {
@@ -59,40 +68,50 @@ public class PointService {
         }
 
     }
+
     /**
      * 유저의 포인트를 사용하는 기능
-     *
-     * @param id     회원 아이디
-     * @param amount 사용 금액
-     * @return UserPoint
      */
-    public UserPoint use(long id, long amount) {
-        // valid check
-        if (amount <= 0) {
-            throw new RuntimeException("amount must be greater than 0");
-        }
+    public UserPoint use(PointRequest request) {
+        log.info("thread: {}, id: {}, amount: {}", Thread.currentThread().getName(), request.getId(), request.getAmount());
+        // 1. 유효성 검사
+        request.valid();
 
-        ReentrantLock lock = locks.computeIfAbsent(id, k -> new ReentrantLock(true));
+        // 2. 임계 영역 진입을 위한 락 조회
+        ReentrantLock lock = locks.computeIfAbsent(request.getId(), k -> new ReentrantLock(false));
         lock.lock();
 
         try {
-            UserPoint userPoint = userPointRepository.selectById(id);
+            UserPoint userPoint = userPointRepository.selectById(request.getId());
 
             if (userPoint == null) {
                 throw new RuntimeException("not find user point");
             }
 
             // 잔고보다 차감 포인트 금액이 더 큰 경우 취소
-            if (userPoint.point() < amount) {
+            if (userPoint.point() < request.getAmount()) {
                 throw new RuntimeException("not enough point");
             }
 
-            userPoint = userPointRepository.insertOrUpdate(id, userPoint.point() - amount);
-            log.info("id: {}, amount: {}, balance: {}, update: {}", id, amount, userPoint.point(), userPoint.updateMillis());
+            // 3. 포인트 차감, 포인트 값 수정
+            long point = userPoint.point() - request.getAmount();
 
-            pointHistoryRepository.insert(id, amount, TransactionType.USE, userPoint.updateMillis());
+            userPoint = userPointRepository.insertOrUpdate(
+                    request.getId(),
+                    point
+            );
 
+            // 4. 거래 내역 로그 저장
+            pointHistoryRepository.insert(
+                    request.getId(),
+                    request.getAmount(),
+                    TransactionType.USE,
+                    userPoint.updateMillis()
+            );
+
+            log.info("point: {}, updateMillis: {}", userPoint.point(), userPoint.updateMillis());
             return userPoint;
+
         } catch (RuntimeException e) {
             throw e;
 
@@ -103,9 +122,6 @@ public class PointService {
 
     /**
      * 유저의 포인트 충전/사용 내역 조회
-     *
-     * @param id 회원 아이디
-     * @return List<PointHistory>
      */
     public List<PointHistory> histories(long id) {
         return pointHistoryRepository.selectAllByUserId(id);
