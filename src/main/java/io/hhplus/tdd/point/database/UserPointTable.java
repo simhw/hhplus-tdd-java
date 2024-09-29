@@ -1,6 +1,7 @@
-package io.hhplus.tdd.database;
+package io.hhplus.tdd.point.database;
 
-import io.hhplus.tdd.point.UserPoint;
+import io.hhplus.tdd.point.domain.UserPoint;
+import io.hhplus.tdd.point.domain.UserPointRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -11,15 +12,17 @@ import java.util.concurrent.TimeUnit;
  * 해당 Table 클래스는 변경하지 않고 공개된 API 만을 사용해 데이터를 제어합니다.
  */
 @Component
-public class UserPointTable {
+public class UserPointTable implements UserPointRepository {
 
     private final Map<Long, UserPoint> table = new HashMap<>();
 
+    @Override
     public UserPoint selectById(Long id) {
         throttle(200);
         return table.getOrDefault(id, UserPoint.empty(id));
     }
 
+    @Override
     public UserPoint insertOrUpdate(long id, long amount) {
         throttle(300);
         UserPoint userPoint = new UserPoint(id, amount, System.currentTimeMillis());
